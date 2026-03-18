@@ -17,7 +17,7 @@ def set_working_directory_to_exe_location():
 
 
 def save_image_from_url(url, save_path):
-    if url == None or url == "":
+    if url is None or url == "":
         return
     response = requests.get(url)
 
@@ -41,9 +41,14 @@ def get_matching_or_first(items, predicate):
     return items[0]
 
 
-def clipSting(value, max) -> str:
-    if value == None:
+def clipString(value, max) -> str:
+    if value is None:
         return ""
     if len(value) > max:
         value = value[:max] + "..."
     return value
+
+
+def clipSting(value, max) -> str:
+    """Backward-compatible typo alias for clipString."""
+    return clipString(value, max)
