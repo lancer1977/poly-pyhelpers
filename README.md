@@ -20,3 +20,8 @@ pytest
 # Run with coverage
 pytest --cov=src --cov-report=html
 ```
+
+## 📖 Documentation
+Detailed documentation can be found in the following sections:
+- [Feature Index](./docs/features/README.md)
+- [Core Capabilities](./docs/features/core-capabilities.md)
