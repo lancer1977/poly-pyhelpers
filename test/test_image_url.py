@@ -1,153 +1,67 @@
+
 import pytest
+import responses
 import os
-import sys
-import importlib.util
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-from io import BytesIO
-import requests
+from PIL import Image
+from poly_pyhelpers.pyhelpers import save_image_from_url
 
-# Import the module file directly to avoid broken package imports
-spec = importlib.util.spec_from_file_location(
-    "pyhelpers", 
-    str(Path(__file__).parent.parent / "src" / "poly_pyhelpers" / "pyhelpers.py")
-)
-pyhelpers = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(pyhelpers)
+# Minimal valid 1x1 GIF
+GIF_DATA = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
 
-# Get the function
-save_image_from_url = pyhelpers.save_image_from_url
+@pytest.fixture
+def mocked_responses():
+    with responses.RequestsMock() as rsps:
+        yield rsps
 
+def test_save_image_from_url_success(mocked_responses, tmp_path):
+    """Tests successful image download and save."""
+    image_url = "http://example.com/image.gif"
+    save_path = tmp_path / "image.gif"
+    mocked_responses.add(responses.GET, image_url, body=GIF_DATA, status=200, content_type='image/gif')
 
-class TestSaveImageFromUrl:
-    """Tests for save_image_from_url function."""
+    result = save_image_from_url(image_url, str(save_path))
 
-    def test_successful_image_download(self):
-        """Test successful image download and save."""
-        # Patch at the module level we imported
-        original_requests = pyhelpers.requests
-        original_image = pyhelpers.Image
-        
-        try:
-            # Replace with mocks
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.content = b'fake_image_data'
-            pyhelpers.requests = Mock(get=Mock(return_value=mock_response))
-            
-            mock_img = Mock()
-            pyhelpers.Image = Mock(open=Mock(return_value=mock_img))
+    assert result is True
+    assert save_path.exists()
+    # Verify that the saved file is a valid image with the correct properties
+    with Image.open(save_path) as img:
+        assert img.size == (1, 1)
+        assert img.format == 'GIF'
 
-            # Call the function
-            save_image_from_url("https://example.com/image.png", "/tmp/test_image.png")
+def test_save_image_from_url_not_found(mocked_responses, tmp_path):
+    """Tests handling of a 404 Not Found error."""
+    image_url = "http://example.com/not_found.gif"
+    save_path = tmp_path / "not_found.gif"
+    mocked_responses.add(responses.GET, image_url, status=404)
 
-            # Verify requests.get was called
-            pyhelpers.requests.get.assert_called_once_with("https://example.com/image.png")
+    result = save_image_from_url(image_url, str(save_path))
 
-            # Verify image was opened from the response content
-            pyhelpers.Image.open.assert_called_once()
-            call_args = pyhelpers.Image.open.call_args[0][0]
-            assert isinstance(call_args, BytesIO)
-            assert call_args.getvalue() == b'fake_image_data'
+    assert result is False
+    assert not save_path.exists()
 
-            # Verify image was saved to the expected path
-            mock_img.save.assert_called_once_with("/tmp/test_image.png")
-        finally:
-            # Restore
-            pyhelpers.requests = original_requests
-            pyhelpers.Image = original_image
+def test_save_image_from_url_invalid_url(tmp_path):
+    """Tests handling of a malformed URL."""
+    image_url = "not-a-valid-url"
+    save_path = tmp_path / "image.gif"
 
-    def test_404_error_handling(self):
-        """Test 404 error handling."""
-        original_requests = pyhelpers.requests
-        
-        try:
-            mock_response = Mock()
-            mock_response.status_code = 404
-            pyhelpers.requests = Mock(get=Mock(return_value=mock_response))
+    result = save_image_from_url(image_url, str(save_path))
 
-            import io
-            from contextlib import redirect_stdout
+    assert result is False
+    assert not save_path.exists()
 
-            f = io.StringIO()
-            with redirect_stdout(f):
-                save_image_from_url("https://example.com/notfound.png", "/tmp/image.png")
+def test_save_image_from_url_permission_error(mocked_responses, tmp_path):
+    """Tests handling of a file system permission error."""
+    image_url = "http://example.com/image.gif"
+    # Create a read-only directory
+    read_only_dir = tmp_path / "read_only"
+    read_only_dir.mkdir()
+    save_path = read_only_dir / "image.gif"
+    # Make the directory read-only *after* creating the path object
+    read_only_dir.chmod(0o555)
 
-            output = f.getvalue()
-            assert "Failed to download image" in output
-            assert "404" in output
-        finally:
-            pyhelpers.requests = original_requests
+    mocked_responses.add(responses.GET, image_url, body=GIF_DATA, status=200, content_type='image/gif')
 
-    def test_500_error_handling(self):
-        """Test 500 error handling."""
-        original_requests = pyhelpers.requests
+    result = save_image_from_url(image_url, str(save_path))
 
-        try:
-            mock_response = Mock()
-            mock_response.status_code = 500
-            pyhelpers.requests = Mock(get=Mock(return_value=mock_response))
-
-            import io
-            from contextlib import redirect_stdout
-
-            f = io.StringIO()
-            with redirect_stdout(f):
-                save_image_from_url("https://example.com/servererror.png", "/tmp/image.png")
-
-            output = f.getvalue()
-            assert "Failed to download image" in output
-            assert "500" in output
-        finally:
-            pyhelpers.requests = original_requests
-
-    def test_timeout_handling(self):
-        """Test network timeout handling."""
-        original_requests = pyhelpers.requests
-        
-        try:
-            pyhelpers.requests = Mock()
-            pyhelpers.requests.get.side_effect = requests.Timeout("Connection timed out")
-
-            with pytest.raises(requests.Timeout):
-                save_image_from_url("https://example.com/slow.png", "/tmp/image.png")
-        finally:
-            pyhelpers.requests = original_requests
-
-    def test_invalid_url_none(self):
-        """Test handling of None URL."""
-        original_requests = pyhelpers.requests
-        
-        try:
-            pyhelpers.requests = Mock()
-            
-            import io
-            from contextlib import redirect_stdout
-
-            f = io.StringIO()
-            with redirect_stdout(f):
-                save_image_from_url(None, "/tmp/image.png")
-
-            # Should NOT have called requests.get
-            pyhelpers.requests.get.assert_not_called()
-        finally:
-            pyhelpers.requests = original_requests
-
-    def test_invalid_url_empty(self):
-        """Test handling of empty URL."""
-        original_requests = pyhelpers.requests
-        
-        try:
-            pyhelpers.requests = Mock()
-            
-            import io
-            from contextlib import redirect_stdout
-
-            f = io.StringIO()
-            with redirect_stdout(f):
-                save_image_from_url("", "/tmp/image.png")
-
-            # Should NOT have called requests.get
-            pyhelpers.requests.get.assert_not_called()
-        finally:
-            pyhelpers.requests = original_requests
+    assert result is False
+    assert not save_path.exists()

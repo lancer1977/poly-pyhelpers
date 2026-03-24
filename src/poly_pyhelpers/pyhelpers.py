@@ -17,19 +17,29 @@ def set_working_directory_to_exe_location():
 
 
 def save_image_from_url(url, save_path):
+    """Download and save an image from a URL.
+    
+    Returns True on success, False on failure.
+    """
     if url is None or url == "":
-        return
-    response = requests.get(url)
+        return False
+    try:
+        response = requests.get(url)
 
-    if response.status_code == 200:
-        # Open the image using PIL
-        img = Image.open(BytesIO(response.content))
+        if response.status_code == 200:
+            # Open the image using PIL
+            img = Image.open(BytesIO(response.content))
 
-        # Save the image to disk
-        img.save(save_path)
-        print(f"Image saved to {save_path}")
-    else:
-        print(f"Failed to download image. Status code: {response.status_code}")
+            # Save the image to disk
+            img.save(save_path)
+            print(f"Image saved to {save_path}")
+            return True
+        else:
+            print(f"Failed to download image. Status code: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"Error saving image: {e}")
+        return False
 
 
 def get_matching_or_first(items, predicate):
