@@ -1,6 +1,15 @@
 # poly-pyhelpers
 [![Tests](https://github.com/polyhydra-games/poly-pyhelpers/actions/workflows/test.yml/badge.svg)](https://github.com/polyhydra-games/poly-pyhelpers/actions/workflows/test.yml)
 
+## Tags
+
+- poly-pyhelpers
+- docs
+- poly
+- pyhelpers
+- game
+- testing
+
 # Purpose
 Code for various helper methods will be added here.
 
