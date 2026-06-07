@@ -124,6 +124,29 @@ from poly_pyhelpers import clipSting
 result = clipSting("Long text here", 10)  # Returns "Long tex..."
 ```
 
+## Test Foundation
+
+Hermes Kanban: `t_75b002e2`
+
+The repository uses pytest with configuration in `pyproject.toml`:
+
+- `testpaths = ["test"]`
+- `pythonpath = ["src"]`
+- test files match `test_*.py`
+
+Shared pytest fixtures live in `test/conftest.py`, including temporary-directory, mock HTTP response, sample image bytes, and source-path helpers. Run the focused harness validation from the repository root:
+
+```bash
+python -m pytest
+```
+
+If the ambient Python environment is missing dev dependencies such as `responses`, install the development extra first or use the repo-local virtual environment:
+
+```bash
+pip install -e ".[dev]"
+.venv/bin/python -m pytest
+```
+
 ## Dependencies
 
 - `requests`

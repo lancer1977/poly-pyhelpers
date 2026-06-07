@@ -19,16 +19,20 @@ Will expand and organize as need presents itself.
 
 ## Running Tests
 
+Hermes Kanban test-foundation slice: `t_75b002e2`.
+
 ```bash
 # Install dev dependencies
 pip install -e ".[dev]"
 
 # Run tests
-pytest
+python -m pytest
 
 # Run with coverage
-pytest --cov=src --cov-report=html
+python -m pytest --cov=src --cov-report=html
 ```
+
+The pytest harness is configured in `pyproject.toml` with shared fixtures in `test/conftest.py`. See [poly-pyhelpers Core Functions](./docs/features/poly-pyhelpers.md#test-foundation) for the test foundation notes.
 
 ## 📖 Documentation
 Detailed documentation can be found in the following sections:
