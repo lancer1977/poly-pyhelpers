@@ -36,5 +36,7 @@ The pytest harness is configured in `pyproject.toml` with shared fixtures in `te
 
 ## 📖 Documentation
 Detailed documentation can be found in the following sections:
+- [Docs Index](./docs/README.md)
 - [Feature Index](./docs/features/README.md)
 - [Core Capabilities](./docs/features/core-capabilities.md)
+- [Roadmap Index](./docs/roadmaps/README.md)
